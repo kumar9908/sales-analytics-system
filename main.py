@@ -1,134 +1,132 @@
-"""
-Main execution file for Sales Analytics System
-Covers:
-- Part 1: File Handling & Preprocessing
-- Part 2: Data Processing & Analytics
-- Part 3: API Integration & Data Enrichment
-"""
-
-# -------------------- IMPORTS --------------------
+# main.py
 
 from utils.file_handler import read_sales_data, parse_transactions
 from utils.data_handler import validate_and_filter
-from utils.data_processor import (
-    calculate_total_revenue,
-    region_wise_sales,
-    top_selling_products,
-    customer_analysis,
-    daily_sales_trend,
-    find_peak_sales_day,
-    low_performing_products
-)
 from utils.api_handler import (
     fetch_all_products,
     create_product_mapping,
     enrich_sales_data,
-    save_enriched_data
+    save_enriched_data,
 )
+from utils.report_generator import generate_sales_report
 
-# -------------------- MAIN FUNCTION --------------------
 
 def main():
-    print("=" * 60)
-    print("SALES ANALYTICS SYSTEM - EXECUTION STARTED")
-    print("=" * 60)
+    try:
+        print("=" * 40)
+        print("SALES ANALYTICS SYSTEM")
+        print("=" * 40)
 
-    # ==================================================
-    # PART 1: FILE HANDLING & PREPROCESSING
-    # ==================================================
-    print("\n[PART 1] Reading and parsing sales data...")
+        # --------------------------------------------------
+        # [1/10] READ SALES DATA
+        # --------------------------------------------------
+        print("\n[1/10] Reading sales data...")
+        raw_lines = read_sales_data("data/sales_data.txt")
+        print(f"✓ Successfully read {len(raw_lines)} transactions")
 
-    raw_lines = read_sales_data("data/sales_data.txt")
-    print(f"Raw lines read: {len(raw_lines)}")
+        # --------------------------------------------------
+        # [2/10] PARSE & CLEAN DATA
+        # --------------------------------------------------
+        print("\n[2/10] Parsing and cleaning data...")
+        transactions = parse_transactions(raw_lines)
+        print(f"✓ Parsed {len(transactions)} records")
 
-    parsed_transactions = parse_transactions(raw_lines)
-    print(f"Parsed transactions: {len(parsed_transactions)}")
+        # --------------------------------------------------
+        # [3/10] FILTER OPTIONS
+        # --------------------------------------------------
+        regions = sorted({t["Region"] for t in transactions if t.get("Region")})
+        amounts = [
+            t["Quantity"] * t["UnitPrice"]
+            for t in transactions
+            if t.get("Quantity") and t.get("UnitPrice")
+        ]
 
-    # ==================================================
-    # PART 1.3: VALIDATION & FILTERING
-    # ==================================================
-    print("\n[PART 1.3] Validating transactions...")
+        print("\n[3/10] Filter Options Available:")
+        print(f"Regions: {', '.join(regions)}")
+        print(f"Amount Range: ₹{min(amounts):,.0f} - ₹{max(amounts):,.0f}")
 
-    valid_transactions, invalid_count, summary = validate_and_filter(
-        parsed_transactions
-    )
+        apply_filter = input("\nDo you want to filter data? (y/n): ").strip().lower()
 
-    print("Validation Summary:", summary)
+        region = None
+        min_amount = None
+        max_amount = None
 
-    # ==================================================
-    # PART 2: DATA PROCESSING & ANALYTICS
-    # ==================================================
-    print("\n[PART 2] Running analytics...")
+        if apply_filter == "y":
+            region = input("Enter region (or press Enter to skip): ").strip() or None
 
-    # ---- Total Revenue ----
-    total_revenue = calculate_total_revenue(valid_transactions)
-    print(f"\nTotal Revenue: {total_revenue}")
+            min_amt = input("Enter minimum amount (or press Enter to skip): ").strip()
+            max_amt = input("Enter maximum amount (or press Enter to skip): ").strip()
 
-    # ---- Region-wise Sales ----
-    region_sales = region_wise_sales(valid_transactions)
-    print("\nRegion-wise Sales:")
-    for region, data in region_sales.items():
-        print(region, "=>", data)
+            min_amount = float(min_amt) if min_amt else None
+            max_amount = float(max_amt) if max_amt else None
 
-    # ---- Top Selling Products ----
-    top_products = top_selling_products(valid_transactions, n=5)
-    print("\nTop Selling Products:")
-    for product in top_products:
-        print(product)
+        # --------------------------------------------------
+        # [4/10] VALIDATION & FILTERING
+        # --------------------------------------------------
+        print("\n[4/10] Validating transactions...")
+        valid_transactions, invalid_count, summary = validate_and_filter(
+            transactions,
+            region=region,
+            min_amount=min_amount,
+            max_amount=max_amount,
+        )
 
-    # ---- Customer Purchase Analysis ----
-    customers = customer_analysis(valid_transactions)
-    print("\nTop Customer (by spend):")
-    first_customer = next(iter(customers.items()))
-    print(first_customer)
+        print(
+            f"✓ Valid: {len(valid_transactions)} | Invalid: {invalid_count}"
+        )
 
-    # ---- Daily Sales Trend ----
-    daily_trend = daily_sales_trend(valid_transactions)
-    print("\nDaily Sales Trend (first 3 days):")
-    for i, (date, data) in enumerate(daily_trend.items()):
-        if i == 3:
-            break
-        print(date, "=>", data)
+        # --------------------------------------------------
+        # [5/10] FETCH PRODUCTS FROM API
+        # --------------------------------------------------
+        print("\n[5/10] Fetching product data from API...")
+        api_products = fetch_all_products()
+        product_mapping = create_product_mapping(api_products)
+        print(f"✓ Fetched {len(product_mapping)} products")
 
-    # ---- Peak Sales Day ----
-    peak_day = find_peak_sales_day(valid_transactions)
-    print("\nPeak Sales Day:")
-    print(peak_day)
+        # --------------------------------------------------
+        # [6/10] ENRICH SALES DATA
+        # --------------------------------------------------
+        print("\n[6/10] Enriching sales data...")
+        enriched_transactions = enrich_sales_data(
+            valid_transactions, product_mapping
+        )
 
-    # ---- Low Performing Products ----
-    low_products = low_performing_products(valid_transactions, threshold=10)
-    print("\nLow Performing Products:")
-    for product in low_products:
-        print(product)
+        enriched_count = sum(
+            1 for t in enriched_transactions if t.get("API_Match") is True
+        )
+        total_count = len(enriched_transactions)
 
-    # ==================================================
-    # PART 3: API INTEGRATION & DATA ENRICHMENT
-    # ==================================================
-    print("\n[PART 3] Fetching product data from API...")
+        rate = (enriched_count / total_count * 100) if total_count else 0
+        print(f"✓ Enriched {enriched_count}/{total_count} transactions ({rate:.1f}%)")
 
-    api_products = fetch_all_products()
-    product_mapping = create_product_mapping(api_products)
+        # --------------------------------------------------
+        # [7/10] SAVE ENRICHED DATA
+        # --------------------------------------------------
+        print("\n[7/10] Saving enriched data...")
+        save_enriched_data(enriched_transactions)
+        print("✓ Saved to: data/enriched_sales_data.txt")
 
-    print(f"Product mapping created for {len(product_mapping)} products")
+        # --------------------------------------------------
+        # [8/10] GENERATE REPORT
+        # --------------------------------------------------
+        print("\n[8/10] Generating report...")
+        generate_sales_report(
+            valid_transactions,
+            enriched_transactions,
+            output_file="output/sales_report.txt",
+        )
+        print("✓ Report saved to: output/sales_report.txt")
 
-    print("\nEnriching sales data with API information...")
-    enriched_transactions = enrich_sales_data(
-        valid_transactions, product_mapping
-    )
+        # --------------------------------------------------
+        # [9/10] DONE
+        # --------------------------------------------------
+        print("\n[9/10] Process Complete!")
+        print("=" * 40)
 
-    save_enriched_data(enriched_transactions)
+    except Exception as e:
+        print("\n❌ ERROR OCCURRED")
+        print(str(e))
 
-    print("\nEnrichment completed successfully.")
-
-    # ==================================================
-    # END
-    # ==================================================
-    print("\n" + "=" * 60)
-    print("SALES ANALYTICS SYSTEM - EXECUTION COMPLETED")
-    print("=" * 60)
-
-
-# -------------------- ENTRY POINT --------------------
 
 if __name__ == "__main__":
     main()

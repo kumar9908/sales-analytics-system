@@ -44,40 +44,35 @@ def create_product_mapping(api_products):
     return product_mapping
 
 def enrich_sales_data(transactions, product_mapping):
-    """
-    Enriches transaction data with API product information
-    """
     enriched = []
 
-    for tx in transactions:
-        new_tx = tx.copy()
+    for t in transactions:
+        record = t.copy()
+        product_id = t.get("ProductID", "")
 
+        # ✅ Extract numeric ID (P101 → 101)
         try:
-            # Extract numeric ID from ProductID (P101 -> 101)
-            numeric_id = int("".join(filter(str.isdigit, tx["ProductID"])))
-
-            api_product = product_mapping.get(numeric_id)
-
-            if api_product:
-                new_tx["API_Category"] = api_product.get("category")
-                new_tx["API_Brand"] = api_product.get("brand")
-                new_tx["API_Rating"] = api_product.get("rating")
-                new_tx["API_Match"] = True
-            else:
-                new_tx["API_Category"] = None
-                new_tx["API_Brand"] = None
-                new_tx["API_Rating"] = None
-                new_tx["API_Match"] = False
-
+            numeric_id = int("".join(filter(str.isdigit, product_id)))
         except Exception:
-            new_tx["API_Category"] = None
-            new_tx["API_Brand"] = None
-            new_tx["API_Rating"] = None
-            new_tx["API_Match"] = False
+            numeric_id = None
 
-        enriched.append(new_tx)
+        api_product = product_mapping.get(numeric_id)
+
+        if api_product:
+            record["API_Category"] = api_product.get("category")
+            record["API_Brand"] = api_product.get("brand")
+            record["API_Rating"] = api_product.get("rating")
+            record["API_Match"] = True
+        else:
+            record["API_Category"] = None
+            record["API_Brand"] = None
+            record["API_Rating"] = None
+            record["API_Match"] = False
+
+        enriched.append(record)
 
     return enriched
+
 
 def save_enriched_data(enriched_transactions, filename="data/enriched_sales_data.txt"):
     """
