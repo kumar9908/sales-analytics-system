@@ -1,126 +1,159 @@
-Project Overview
+# Sales Analytics System (Python)
 
-The Sales Analytics System is a Python-based application designed to process, clean, and analyze sales transaction data for an e-commerce company.
-It handles real-world data quality issues such as missing values, incorrect formats, and invalid records, and prepares clean data for further business analysis and reporting.
+## 📌 Project Overview
 
-This project is developed as part of Module 3: Python Programming Assignment.
+The **Sales Analytics System** is an end-to-end Python application that processes raw sales data, validates and filters transactions, performs analytics, integrates external product data via API, and generates a comprehensive formatted sales report.
 
-🗂️ Project Structure
+This project is designed using a **modular architecture** and follows real-world data handling practices such as error handling, validation rules, and reporting.
+
+---
+
+## 🗂️ Project Structure
+
+```
 sales-analytics-system/
-│── main.py
-│── README.md
-│── requirements.txt
+├── main.py
+├── README.md
+├── requirements.txt
 │
 ├── data/
-│   └── sales_data.txt
+│   ├── sales_data.txt
+│   └── enriched_sales_data.txt
+│
+├── output/
+│   └── sales_report.txt
 │
 └── utils/
-    ├── data_handler.py
     ├── file_handler.py
-    └── api_handler.py
-⚙️ Features
+    ├── data_handler.py
+    ├── data_processor.py
+    ├── api_handler.py
+    └── report_generator.py
+```
 
-Reads pipe-delimited (|) sales data
+---
 
-Handles non-UTF encoding issues
+## ⚙️ Features
 
-Cleans real-world dirty data:
+* Reads pipe-delimited sales data with encoding handling
+* Cleans and validates real-world dirty data
+* Supports optional user-driven filtering (region & amount)
+* Performs sales analytics:
 
-Removes invalid records
+  * Total revenue
+  * Region-wise performance
+  * Top products and customers
+  * Daily sales trends
+  * Peak sales day
+  * Low-performing products
+* Integrates external product data using DummyJSON API
+* Gracefully handles missing API matches
+* Generates a detailed, formatted text report
+* Modular, extensible, and production-style design
 
-Fixes comma-separated numbers
+---
 
-Cleans product names containing commas
+## 🧹 Data Validation Rules
 
-Validates records based on business rules
+Transactions are considered **invalid** if:
 
-Prints validation summary after cleaning
+* Quantity ≤ 0
+* Unit Price ≤ 0
+* Missing required fields
+* TransactionID does not start with `T`
+* ProductID does not start with `P`
+* CustomerID does not start with `C`
 
-Modular and scalable code structure
+Invalid records are excluded from further processing.
 
-🧹 Data Cleaning Rules
-❌ Records REMOVED if:
+---
 
-CustomerID is missing
+## 🌐 API Integration
 
-Region is missing
+* External API used: **DummyJSON Products API**
+* Product IDs are matched by extracting numeric values from sales ProductID
+* If no API match exists, the system:
 
-Quantity ≤ 0
+  * Marks `API_Match = False`
+  * Continues processing without failure
+* This demonstrates **robust real-world integration handling**
 
-UnitPrice ≤ 0
+---
 
-TransactionID does not start with "T"
+## 📄 Report Generation
 
-✅ Records CLEANED & KEPT if:
+A comprehensive report is generated at:
 
-Product names contain commas (commas removed)
+```
+output/sales_report.txt
+```
 
-Numeric values contain commas (converted properly)
+### Report Sections Include:
 
-Empty lines are skipped
+1. Header & metadata
+2. Overall sales summary
+3. Region-wise performance
+4. Top 5 products
+5. Top 5 customers
+6. Daily sales trends
+7. Product performance analysis
+8. API enrichment summary
 
-📊 Validation Output
+All monetary values are formatted with commas for readability.
 
-After cleaning, the program prints:
+---
 
-Total records parsed: XX
-Invalid records removed: XX
-Valid records after cleaning: XX
+## ▶️ How to Run the Project
 
-(Expected valid records after cleaning ≈ 70)
+### 1️⃣ Prerequisites
 
-▶️ How to Run the Project
-1️⃣ Prerequisites
+* Python **3.8+**
+* Internet connection (for API integration)
 
-Python 3.8 or higher
+---
 
-Git (optional but recommended)
+### 2️⃣ Install Dependencies
 
-2️⃣ Install Dependencies
-
-This project uses only standard Python libraries.
-No external packages are required.
-
-(Optional)
-
+```bash
 pip install -r requirements.txt
-3️⃣ Run the Application
+```
 
-Navigate to the project root directory and run:
+---
 
+### 3️⃣ Run the Application
+
+From the project root directory:
+
+```bash
 python main.py
-🧠 main.py (Execution Flow)
+```
 
-Loads the sales data file from data/
+The program will:
 
-Calls the cleaning function from utils/data_handler.py
+* Ask whether you want to apply filters
+* Execute all processing steps
+* Save enriched data and report files automatically
 
-Displays validation statistics
+---
 
-Returns cleaned data for future analytics
+## 🧪 Output Files
 
-🔮 Future Enhancements
+* `data/enriched_sales_data.txt` → Sales data after API enrichment
+* `output/sales_report.txt` → Final formatted analytics report
 
-Sales revenue analysis
+---
 
-Region-wise performance reports
+## 🧠 Design Highlights
 
-API-based product data integration
+* Clear separation of concerns (file handling, validation, analytics, API, reporting)
+* Defensive programming with graceful error handling
+* User-interactive main application flow
+* Suitable for academic evaluation and real-world extension
 
-CSV / JSON report generation
+---
 
-Visualization using charts
+## 👤 Author
 
-🛠️ Technologies Used
+**Saurav Kumar**
 
-Python 3
-
-File handling
-
-Exception handling
-
-Modular programming
-
-👤 Author
-
-Saurav Kumar
+---
